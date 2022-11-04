@@ -40,7 +40,6 @@ def simulator(ident: int, perioda: int, nul_perioda: int, k: int):
             stanje[ident] = rand.randint(100, 999)
             print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: promjena {stanje[ident]}")
             trenutak_zadnje_promjene_stanja[ident] = time.time() - start
-            #print("Tu sam")
             broj_promjena_stanja += 1
 
             time.sleep(1)
