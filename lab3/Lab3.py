@@ -92,6 +92,7 @@ def controller(ulaz, period):
             trenutak_zadnjeg_odgovora[ulaz] = time.time() - start
             print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: kraj obrade, postavljeno {stanje[ulaz]}, utrošeno vrijeme: {t1 - t0}")
             zadnji_odgovor[ulaz] = stanje[ulaz]
+            time.sleep(period - vrijeme_obrade)
 
 
 def simulator(ident: int, perioda: int, nul_perioda: int, k: int, prioritet: int):
