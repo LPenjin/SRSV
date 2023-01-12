@@ -21,17 +21,21 @@ queue = []
 
 
 def get_priorities(l):
-    tmp = []
-    reduce = 0
-    for i in range(len(l)):
-        if l[i][0] == l[i-1][0] and i > 0:
-            reduce += 1
-        tmp.append([l[i][0], i - reduce])
+    tmp = [[l[i][0], i] for i in range(len(l))]
     tmp.sort()
-    priorities = [0] * len(tmp)
-    for i in range(len(tmp)):
-        priorities[i] = tmp[i][1] + 2
-    return priorities
+    tmp2 = []
+    priority = 2
+    tmp2.append([priority, int(tmp[0][1])])
+    for i in range(1, len(tmp)):
+        if tmp[i-1][0] < tmp[i][0]:
+            priority += 1
+        tmp2.append([priority, int(tmp[i][1])])
+
+    priorities2 = [0] * len(tmp)
+    for i in tmp2:
+        priorities2[i[1]] = i[0]
+    return priorities2
+
 
 
 def trosi_10_ms():
@@ -58,14 +62,13 @@ def simuliraj_x_ms(n):
         trosi_10_ms()
 
 
-def controller(ulaz, period, prioritet):
+def controller(ulaz, period):
     obrada_list = [0.1, 0.2, 0.4, 0.7]
     while not end:
         if SCHED_FIFO:
             semaphore.acquire()
-            #print("Tu sam")
             if trenutak_zadnjeg_odgovora[ulaz] < trenutak_zadnje_promjene_stanja[ulaz]:
-                if SCHED_FIFO and queue[0][2] == ulaz:
+                if queue[0][2] == ulaz:
                     del(queue[0])
                     print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: promjena ({zadnji_odgovor[ulaz]}->{stanje[ulaz]}), obrađujem")
                     vrijeme_obrade = float(random.choices(obrada_list, weights=[50, 30, 15, 5], k=1)[0]) * period * 1000
@@ -76,10 +79,19 @@ def controller(ulaz, period, prioritet):
                     trenutak_zadnjeg_odgovora[ulaz] = time.time() - start
                     print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: kraj obrade, postavljeno {stanje[ulaz]}, utrošeno vrijeme: {t1-t0}")
                     zadnji_odgovor[ulaz] = stanje[ulaz]
-            if SCHED_FIFO:
-                semaphore.release()
+            semaphore.release()
             #else:
                 #print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: nema promjene {stanje[ulaz]}")
+        else:
+            print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: promjena ({zadnji_odgovor[ulaz]}->{stanje[ulaz]}), obrađujem")
+            vrijeme_obrade = float(random.choices(obrada_list, weights=[50, 30, 15, 5], k=1)[0]) * period * 1000
+            print(f"Vrijeme obrade je {vrijeme_obrade}")
+            t0 = time.time()
+            a = simuliraj_x_ms(vrijeme_obrade)
+            t1 = time.time()
+            trenutak_zadnjeg_odgovora[ulaz] = time.time() - start
+            print(f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {ulaz}: kraj obrade, postavljeno {stanje[ulaz]}, utrošeno vrijeme: {t1 - t0}")
+            zadnji_odgovor[ulaz] = stanje[ulaz]
 
 
 def simulator(ident: int, perioda: int, nul_perioda: int, k: int, prioritet: int):
@@ -94,8 +106,9 @@ def simulator(ident: int, perioda: int, nul_perioda: int, k: int, prioritet: int
             stanje[ident] = rand.randint(100, 999)
             print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: promjena {stanje[ident]}")
             trenutak_zadnje_promjene_stanja[ident] = time.time() - start
-            queue.append((prioritet, time.time(), ident))
-            queue.sort()
+            if SCHED_FIFO:
+                queue.append((prioritet, time.time(), ident))
+                queue.sort()
             #print(queue)
             broj_promjena_stanja += 1
 
@@ -128,11 +141,14 @@ if __name__ == "__main__":
                         help='Number of maximum running threads')
     args = parser.parse_args()
     SCHED_FIFO = args.SCHED_FIFO
+    if SCHED_FIFO:
+        print("Koristim SCHED_FIFO")
     n = args.n
     semaphore = threading.Semaphore(n)
     t0 = time.time()
     odredi_broj_iteracija()
     print(time.time() - t0)
+    print(broj_iteracija)
     n = int(input("Unesi broj ulaza: "))
     l = []
     for ulaz in range(n):
@@ -145,10 +161,10 @@ if __name__ == "__main__":
     trenutak_zadnjeg_odgovora = [0 for i in range(n)]
     start = time.time()
     priorities = get_priorities(l)
-    #print(priorities)
+    print(priorities)
     for ulaz in range(n):
         threading.Thread(target=simulator, args=(ulaz, float(l[ulaz][0]), float(l[ulaz][1]), k, priorities[ulaz], )).start()
-        threading.Thread(target=controller, args=(ulaz, float(l[ulaz][0]), priorities[ulaz], )).start()
+        threading.Thread(target=controller, args=(ulaz, float(l[ulaz][0]), )).start()
     while True:
         try:
             time.sleep(1)
