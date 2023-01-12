@@ -109,7 +109,6 @@ def simulator(ident: int, perioda: int, nul_perioda: int, k: int, prioritet: int
             if SCHED_FIFO:
                 queue.append((prioritet, time.time(), ident))
                 queue.sort()
-            #print(queue)
             broj_promjena_stanja += 1
 
             time.sleep(perioda)
@@ -129,7 +128,6 @@ def simulator(ident: int, perioda: int, nul_perioda: int, k: int, prioritet: int
                     maksimalno_vrijeme_odgovora = trajanje_odgovora
                 dodatna_odgoda = random.uniform(0, k) * perioda
                 print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: odgovoreno ({trajanje_odgovora} od promjene; spavam do {(time.time() - start) + perioda + dodatna_odgoda}")
-                time.sleep(perioda + dodatna_odgoda)
     print(f"dretva {ident} -> prosjecno vrijeme odgovora = {suma_vremena_odgovora/broj_promjena_stanja}, max vrijeme: {maksimalno_vrijeme_odgovora }"
           f" broj problema: {broj_problema}\n")
 
