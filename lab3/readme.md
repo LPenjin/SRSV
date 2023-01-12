@@ -1,6 +1,6 @@
 LAB3. Upravljanje sustavom korištenjem višedretvenosti
 
-Python u sebi nem ugrađeni SCHED_FIFO raspoređivač i dretve ne mogu imati prioritete.
+Python u sebi nema ugrađeni SCHED_FIFO raspoređivač i dretve ne mogu imati prioritete.
 
 Zato u strukturi podataka dretve odredim njezin prioritet. Kada podatak dode na ulaz, simulator ulaza prvo stavi posao u red koji prvo gleda prioritet dretve a zatim vrijeme dospijeća.
 
