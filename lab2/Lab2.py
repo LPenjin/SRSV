@@ -37,11 +37,15 @@ def daj_iduci():
     global stanje_reda
     sljedeci_zadatak = 0
     tip = red[stanje_reda]
+    #print(f"tip zadatka je: {tip}")
     stanje_reda = (stanje_reda + 1) % len(red)
     if tip != -1:
         sljedeci_zadatak = zad[tip][ind[tip]]
         ind[tip] = (ind[tip] + 1) % len(zad[tip])
-    return sljedeci_zadatak
+        return sljedeci_zadatak
+    else:
+        return -1
+
 
 def radi_posao(x, timeout):
     global postavi_prekid, bez_prekoracenja, druga_perioda, prekinuti
@@ -49,54 +53,57 @@ def radi_posao(x, timeout):
     for i in range(math.floor(x/timeout)):
         time.sleep(timeout)
         if postavi_prekid:
+            print(f"Zavrsio sam {i}/{math.floor(x/timeout)}")
+            prekoracenje = True
             postavi_prekid = 0
             if bez_prekoracenja > 10:
                 bez_prekoracenja = 0
                 perioda = 2
                 druga_perioda += 1
                 print(f"({int(round((time.time() - start), 3) * 1000)}) Upravljac, dozvoljavam drugu periodu zadataku {zadatak_u_obradi}")
-                prekoracenje = True
-        else:
-            prekinuti += 1
-            print(f"({int(round((time.time() - start), 3) * 1000)}) Upravljac, prekidam obradu zadatka {zadatak_u_obradi}")
-            return prekoracenje
+            else:
+                prekinuti += 1
+                print(f"({int(round((time.time() - start), 3) * 1000)}) Upravljac, prekidam obradu zadatka {zadatak_u_obradi}")
+                return prekoracenje, True
     time.sleep(x%timeout)
-    return prekoracenje
+    return prekoracenje, False
 
 
 def controller():
     global postavi_prekid, bez_prekoracenja, zadatak_u_obradi
     obrada_list = [0.03, 0.05, 0.08, 0.12]
-    timeout = 0.005
+    timeout = 0.01
     while not end:
         if postavi_prekid:
-            print("tu sam")
+            #print(stanje_reda)
             postavi_prekid = 0
             zadatak_u_obradi = daj_iduci()
-            if zadatak_u_obradi != -1 and trenutak_zadnjeg_odgovora[zadatak_u_obradi] < trenutak_zadnje_promjene_stanja[zadatak_u_obradi]:
+            print(f"({int(round((time.time() - start), 3) * 1000)}) Sljedeci zadatak je:  {zadatak_u_obradi}")
+            if zadatak_u_obradi != -1 and trenutak_zadnjeg_odgovora[zadatak_u_obradi] <= trenutak_zadnje_promjene_stanja[zadatak_u_obradi]:
                 print(
-                    f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {i}: promjena ({zadnji_odgovor[i]}->{stanje[i]}), obrađujem")
+                    f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {zadatak_u_obradi}: promjena ({zadnji_odgovor[i]}->{stanje[i]}), obrađujem")
                 perioda = 1
                 vrijeme_obrade = random.choices(obrada_list, weights=[20, 50, 20, 10], k=1)[0]
-                print(vrijeme_obrade)
-                prekoracenje = radi_posao(vrijeme_obrade, timeout)
-                if not prekoracenje:
-                    #print("prekoracenjeeeeeeeeeeeeeeeeeee")
-                    bez_prekoracenja += 1
+                print(f"Vrijeme obrade je {vrijeme_obrade}")
+                prekoracenje, failed = radi_posao(vrijeme_obrade, timeout)
+                if not failed:
                     trenutak_zadnjeg_odgovora[zadatak_u_obradi] = time.time() - start
                     print(
-                        f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {i}: kraj obrade, postavljeno {stanje[i]}")
+                        f"({int(round((time.time() - start), 3) * 1000)})upr: ulaz {zadatak_u_obradi}: kraj obrade, postavljeno {stanje[i]}")
                     zadnji_odgovor[zadatak_u_obradi] = stanje[zadatak_u_obradi]
+                if not prekoracenje:
+                    bez_prekoracenja += 1
                 else:
                     #print("tu sam")
                     postavi_prekid = 1
                     perioda = 0
                     continue
                 perioda = 0
+            else:
+                print(f"({int(round((time.time() - start), 3) * 1000)}) Radim nista")
+                bez_prekoracenja += 1
 
         time.sleep(timeout)
-
-
 
 
 def simulator(ident: int, perioda: int):
@@ -104,9 +111,8 @@ def simulator(ident: int, perioda: int):
     suma_vremena_odgovora = 0
     maksimalno_vrijeme_odgovora = 0
     broj_problema = 0
-
+    print(f"zapocinjem dretvu {ident}")
     while not end:
-        print(f"zapocinjem dretvu {ident}")
         stanje[ident] = rand.randint(100, 999)
         print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: promjena {stanje[ident]}")
         trenutak_zadnje_promjene_stanja[ident] = time.time() - start
@@ -123,9 +129,13 @@ def simulator(ident: int, perioda: int):
             suma_vremena_odgovora += trajanje_odgovora
             if maksimalno_vrijeme_odgovora < trajanje_odgovora:
                 maksimalno_vrijeme_odgovora = trajanje_odgovora
-            print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: odgovoreno ({trajanje_odgovora} od promjene")
-    print(f"dretva {ident} -> prosjecno vrijeme odgovora = {suma_vremena_odgovora/broj_promjena_stanja}, max vrijeme: {maksimalno_vrijeme_odgovora }"
+            print(f"({int(round((time.time() - start), 3) * 1000)})dretva-{ident}: odgovoreno ({trajanje_odgovora} od promjene)")
+    if broj_promjena_stanja > 0:
+        print(f"dretva {ident} -> prosjecno vrijeme odgovora = {suma_vremena_odgovora/broj_promjena_stanja}, max vrijeme: {maksimalno_vrijeme_odgovora} "
           f"broj problema: {broj_problema}")
+    else:
+        print(
+            f"dretva {ident} -> broj problema: {broj_problema}")
 
 
 if __name__ == "__main__":
